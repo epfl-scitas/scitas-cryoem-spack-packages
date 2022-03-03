@@ -1,0 +1,152 @@
+diff -Naur a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt	2021-03-08 18:13:26.000000000 +0100
++++ b/CMakeLists.txt	2021-12-21 13:27:33.699316553 +0100
+@@ -53,28 +53,27 @@
+ MARK_AS_ADVANCED(CLEAR CMAKE_VERBOSE_MAKEFILE)
+ 
+ # Set EMAN_PREFIX
+-if("$ENV{CONDA_BUILD_STATE}" STREQUAL "BUILD" )
+-	message("ENV{CONDA_BUILD_STATE}: $ENV{CONDA_BUILD_STATE}")
+-	if(NOT WIN32)
+-		set(EMAN_PREFIX $ENV{PREFIX})
+-	else()
+-		set(EMAN_PREFIX $ENV{LIBRARY_PREFIX})
+-	endif()
+-else()
+-	find_package(Conda REQUIRED)
+-		
+-	if(CONDA_PREFIX)
+-		if(NOT WIN32)
+-			set(EMAN_PREFIX ${CONDA_PREFIX})
+-		else()
+-			set(EMAN_PREFIX ${CONDA_PREFIX}/Library)
+-		endif()
+-	endif()
+-endif()
++# if("$ENV{CONDA_BUILD_STATE}" STREQUAL "BUILD" )
++# 	message("ENV{CONDA_BUILD_STATE}: $ENV{CONDA_BUILD_STATE}")
++# 	if(NOT WIN32)
++# 		set(EMAN_PREFIX $ENV{PREFIX})
++# 	else()
++# 		set(EMAN_PREFIX $ENV{LIBRARY_PREFIX})
++# 	endif()
++# else()
++# 	find_package(Conda REQUIRED)
+ 
++# 	if(CONDA_PREFIX)
++# 		if(NOT WIN32)
++# 			set(EMAN_PREFIX ${CONDA_PREFIX})
++# 		else()
++# 			set(EMAN_PREFIX ${CONDA_PREFIX}/Library)
++# 		endif()
++# 	endif()
++# endif()
++set(EMAN_PREFIX ${CMAKE_INSTALL_PREFIX})
+ set(EMAN_PREFIX_INC      ${EMAN_PREFIX}/include)
+ set(EMAN_PREFIX_LIB      ${EMAN_PREFIX}/lib)
+-set(CMAKE_INSTALL_PREFIX ${EMAN_PREFIX} CACHE PATH "installation prefix" FORCE)
+ set(CMAKE_PREFIX_PATH    ${EMAN_PREFIX} ${EMAN_PREFIX}/..)
+ cmake_print_variables(CMAKE_PREFIX_PATH)
+ 
+diff -Naur a/cmake/Boost.cmake b/cmake/Boost.cmake
+--- a/cmake/Boost.cmake	2021-03-08 18:13:26.000000000 +0100
++++ b/cmake/Boost.cmake	2021-12-21 14:05:49.196532996 +0100
+@@ -1,12 +1,14 @@
+ set(Boost_USE_MULTITHREADED ON)
+ set(Boost_NO_BOOST_CMAKE ON)
+-find_package(Boost COMPONENTS python37 numpy37 REQUIRED)
++set(Boost_PY_VERSION ${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
++message(${Boost_PY_VERSION})
++find_package(Boost COMPONENTS python${Boost_PY_VERSION} numpy${Boost_PY_VERSION} REQUIRED)
+ 
+ message("Boost_LIBRARIES:   ${Boost_LIBRARIES}")
+ message("Boost_INCLUDE_DIR: ${Boost_INCLUDE_DIR}")
+ 
+ #this definition is for boost.python > 1.35.0 
+-set_target_properties(Boost::python37
++set_target_properties(Boost::python${Boost_PY_VERSION}
+ 					  PROPERTIES
+ 					  INTERFACE_COMPILE_DEFINITIONS BOOST_PYTHON_NO_PY_SIGNATURES
+ 					  INTERFACE_LINK_LIBRARIES Python::Python
+diff -Naur a/cmake/find_all.cmake b/cmake/find_all.cmake
+--- a/cmake/find_all.cmake	2021-03-08 18:13:26.000000000 +0100
++++ b/cmake/find_all.cmake	2021-12-21 14:02:40.654263257 +0100
+@@ -1,8 +1,6 @@
+ find_package(Python REQUIRED)
+ find_package(NumPy  REQUIRED)
+ 
+-find_package(Nosetests)
+-
+ # Find Boost
+ include(${CMAKE_SOURCE_DIR}/cmake/Boost.cmake)
+ 
+diff -Naur a/cmake/functions.cmake b/cmake/functions.cmake
+--- a/cmake/functions.cmake	2021-03-08 18:13:26.000000000 +0100
++++ b/cmake/functions.cmake	2021-12-21 14:19:53.719738106 +0100
+@@ -36,7 +36,6 @@
+ 	FIND_PATH(${upper}_INCLUDE_PATH
+ 			NAMES ${header} ${header2}
+ 			PATHS $ENV{${upper}DIR}/include ${EMAN_PREFIX_INC}
+-			NO_DEFAULT_PATH
+ 			)
+ 	
+ 	IF(${upper}_INCLUDE_PATH)
+diff -Naur a/libpyEM/CMakeLists.txt b/libpyEM/CMakeLists.txt
+--- a/libpyEM/CMakeLists.txt	2021-03-08 18:13:26.000000000 +0100
++++ b/libpyEM/CMakeLists.txt	2021-12-21 14:24:04.318111116 +0100
+@@ -11,7 +11,7 @@
+ 			PROPERTIES
+ 			PREFIX lib
+ 			SUFFIX ${suffix}
+-			LINK_LIBRARIES "EM2;Boost::python37"
++			LINK_LIBRARIES "EM2;Boost::python${Boost_PY_VERSION}"
+ 			)
+ 	
+ 	install(TARGETS ${libname} DESTINATION ${SP_DIR})
+@@ -66,5 +66,5 @@
+ 
+ add_subdirectory(qtgui)
+ 
+-target_link_libraries(pyUtils2         NumPy Boost::numpy37)
+-target_link_libraries(pyTypeConverter2 NumPy Boost::numpy37)
++target_link_libraries(pyUtils2         NumPy Boost::numpy${Boost_PY_VERSION})
++target_link_libraries(pyTypeConverter2 NumPy Boost::numpy${Boost_PY_VERSION})
+diff -Naur a/cmake/FindPython.cmake b/cmake/FindPython.cmake
+--- a/cmake/FindPython.cmake	2021-12-21 19:12:39.227036977 +0100
++++ b/cmake/FindPython.cmake	2021-12-21 19:17:08.940430337 +0100
+@@ -11,20 +11,21 @@
+ message("PYTHON_INCLUDE_DIR:  ${PYTHON_INCLUDE_DIR}")
+ 
+ # Set SP_DIR
+-if("$ENV{CONDA_BUILD_STATE}" STREQUAL "BUILD" )
+-	set(SP_DIR $ENV{SP_DIR})
+-else()
+-	if(NOT WIN32)
+-		set(py_sp_dir_command "import site; print(site.getsitepackages()[0])")
+-	else()
+-		set(py_sp_dir_command "import site; print(site.getsitepackages()[1])")
+-	endif()
+-	execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "${py_sp_dir_command}"
+-			OUTPUT_VARIABLE SP_DIR
+-			OUTPUT_STRIP_TRAILING_WHITESPACE
+-			)
+-	message("Python site-packages: ${SP_DIR}")
+-endif()
++# if("$ENV{CONDA_BUILD_STATE}" STREQUAL "BUILD" )
++# 	set(SP_DIR $ENV{SP_DIR})
++# else()
++# 	if(NOT WIN32)
++# 		set(py_sp_dir_command "import site; print(site.getsitepackages()[0])")
++# 	else()
++# 		set(py_sp_dir_command "import site; print(site.getsitepackages()[1])")
++# 	endif()
++# 	execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "${py_sp_dir_command}"
++# 			OUTPUT_VARIABLE SP_DIR
++# 			OUTPUT_STRIP_TRAILING_WHITESPACE
++# 			)
++set(SP_DIR ${CMAKE_INSTALL_PREFIX}/lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages)
++message("Python site-packages: ${SP_DIR}")
++#endif()
+ 
+ execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_config_var('Py_ENABLE_SHARED'))"
+ 				OUTPUT_VARIABLE PYTHON_LIB_SHARED
