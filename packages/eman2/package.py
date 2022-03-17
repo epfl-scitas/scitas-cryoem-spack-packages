@@ -51,6 +51,12 @@ class Eman2(CMakePackage):
 
     extends("python")
 
+    def patch(self):
+        filter_file(
+            '#include <cufft.h>',
+            '#include <cstdio>\r\n#include <cufft.h>',
+            "libEM/cuda/cuda_emfft.cu")
+    
     def cmake_args(self):
         args = [
             "-DENABLE_RT:BOOL=OFF",
