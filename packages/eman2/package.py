@@ -63,4 +63,8 @@ class Eman2(CMakePackage):
             self.define_from_variant("ENABLE_EMAN_CUDA", "cuda"),
             self.define_from_variant("ENABLE_SPARX_CUDA", "cuda"),
         ]
+        
+        if self.spec.satisfies('+cuda'):
+            args.append(self.define("CUDA_TOOLKIT_ROOT_DIR", self.spec["cuda"].prefix))
+
         return args

@@ -42,8 +42,18 @@ class Unblur(AutotoolsPackage):
     build_directory = "src/build"
     parallel = False
 
+    depends_on('autoconf', type='build', when='@1.0.2')
+    depends_on('automake', type='build', when='@1.0.2')
+    depends_on('libtool', type='build', when='@1.0.2')
+
+    force_autoreconf = True
+    
     def patch(self):
         filter_file(r"<<<<<<<.*", "", "src/missing")
+        if 'gfortran' in self.compiler.fc:
+            filter_file(r'FCFLAGS=""',
+                        'FCFLAGS="-cpp -ffree-line-length-none -I{}"'.format(self.spec["fftw"].prefix.include),
+                        "src/configure.ac")
 
     def configure_args(self):
         spec = self.spec

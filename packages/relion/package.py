@@ -13,20 +13,25 @@ class Relion(CMakePackage, CudaPackage):
     electron cryo-microscopy (cryo-EM)."""
 
     homepage = "http://www2.mrc-lmb.cam.ac.uk/relion"
-    git      = "https://github.com/3dem/relion.git"
-    url      = "https://github.com/3dem/relion/archive/3.1.3.zip"
+    git = "https://github.com/3dem/relion.git"
+    url = "https://github.com/3dem/relion/archive/3.1.3.zip"
 
     # New 4.0-beta
     version('4.0-beta', commit='e3537c82cf7a816df805f4e54c0bc12475803524')
 
     version('3.1.3', sha256='e67277200b54d1814045cfe02c678a58d88eb8f988091573453c8568bfde90fc', preferred=True)
-    version('3.1.2', sha256='dcdf6f214f79a03d29f0fed2de58054efa35a9d8401543bdc52bfb177987931f')
-    version('3.1.1', sha256='63e9b77e1ba9ec239375020ad6ff631424d1a5803cba5c608c09fd44d20b1618')
-    version('3.1.0', sha256='8a7e751fa6ebcdf9f36046499b3d88e170c4da86d5ff9ad1914b5f3d178867a8')
+    version(
+        '3.1.2', sha256='dcdf6f214f79a03d29f0fed2de58054efa35a9d8401543bdc52bfb177987931f')
+    version(
+        '3.1.1', sha256='63e9b77e1ba9ec239375020ad6ff631424d1a5803cba5c608c09fd44d20b1618')
+    version(
+        '3.1.0', sha256='8a7e751fa6ebcdf9f36046499b3d88e170c4da86d5ff9ad1914b5f3d178867a8')
 
     # 3.0.8 latest release in 3.0 branch
-    version('3.0.8', sha256='18cdd58e3a612d32413eb37e473fe8fbf06262d2ed72e42da20356f459260973')
-    version('3.0.7', sha256='a6d37248fc4d0bfc18f4badb7986dc1b6d6849baa2128b0b4dade13cb6991a99')
+    version(
+        '3.0.8', sha256='18cdd58e3a612d32413eb37e473fe8fbf06262d2ed72e42da20356f459260973')
+    version(
+        '3.0.7', sha256='a6d37248fc4d0bfc18f4badb7986dc1b6d6849baa2128b0b4dade13cb6991a99')
 
     # relion master contains development code
     # contains 3.0 branch code
@@ -44,21 +49,25 @@ class Relion(CMakePackage, CudaPackage):
             description='The build type to build',
             values=('Debug', 'Release', 'RelWithDebInfo',
                     'Profiling', 'Benchmarking'))
-    variant('mklfft', default=True, description='Use MKL rather than FFTW for FFT')
-    variant('allow_ctf_in_sagd', default=True, description='Allow CTF-modulation in SAGD, as specified in Claim 1 of patent US10,282,513B2')
+    variant('mklfft', default=True,
+            description='Use MKL rather than FFTW for FFT')
+    variant('allow_ctf_in_sagd', default=True,
+            description='Allow CTF-modulation in SAGD, as specified in Claim 1 of patent US10,282,513B2')
 
     depends_on('mpi')
     depends_on('cmake@3:', type='build')
     depends_on('fftw precision=float,double', when='~mklfft')
     depends_on('fltk', when='+gui')
     depends_on('libtiff')
+    depends_on('libpng')
 
     depends_on('cuda', when='+cuda')
     depends_on('cuda@9:', when='@3: +cuda')
     depends_on('tbb', when='~cuda')
     depends_on('mkl', when='~cuda +mklfft')
 
-    patch('0002-Simple-patch-to-fix-intel-mkl-linking.patch', when='@:3.1.1 os=ubuntu18.04')
+    patch('0002-Simple-patch-to-fix-intel-mkl-linking.patch',
+          when='@:3.1.1 os=ubuntu18.04')
 
     def cmake_args(self):
 
