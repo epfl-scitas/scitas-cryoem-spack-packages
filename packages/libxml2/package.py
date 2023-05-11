@@ -75,7 +75,6 @@ class Libxml2(AutotoolsPackage):
         sha256="3e06d42596b105839648070a5921157fe284b932289ffdbfa304ddc3457e5637",
         when="@2.9.11:2.9.14",
     )
-    build_system("autotools")
 
     @property
     def command(self):
@@ -87,6 +86,26 @@ class Libxml2(AutotoolsPackage):
         hl = find_all_headers(include_dir)
         hl.directories = [include_dir, self.spec.prefix.include]
         return hl
+
+    def configure_args(self):
+        spec = self.spec
+
+        args = [
+            "--with-lzma={0}".format(spec["xz"].prefix),
+            "--with-iconv={0}".format(spec["iconv"].prefix),
+        ]
+
+        if "+python" in spec:
+            args.extend(
+                [
+                    "--with-python={0}".format(spec["python"].home),
+                    "--with-python-install-dir={0}".format(python_platlib),
+                ]
+            )
+        else:
+            args.append("--without-python")
+
+        return args
 
     def patch(self):
         # Remove flags not recognized by the NVIDIA compiler
@@ -137,33 +156,9 @@ class Libxml2(AutotoolsPackage):
         # Perform some cleanup
         fs.force_remove(test_filename)
 
-
-class RunAfter(object):
     @run_after("install")
     @on_package_attributes(run_tests=True)
     def import_module_test(self):
         if "+python" in self.spec:
             with working_dir("spack-test", create=True):
                 python("-c", "import libxml2")
-
-
-class AutotoolsBuilder(autotools.AutotoolsBuilder, RunAfter):
-    def configure_args(self):
-        spec = self.spec
-
-        args = [
-            "--with-lzma={0}".format(spec["xz"].prefix),
-            "--with-iconv={0}".format(spec["iconv"].prefix),
-        ]
-
-        if "+python" in spec:
-            args.extend(
-                [
-                    "--with-python={0}".format(spec["python"].home),
-                    "--with-python-install-dir={0}".format(python_platlib),
-                ]
-            )
-        else:
-            args.append("--without-python")
-
-        return args
