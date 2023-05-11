@@ -7,11 +7,11 @@ import os
 import llnl.util.filesystem as fs
 import llnl.util.tty as tty
 
-from spack.build_systems import autotools, nmake
+from spack.build_systems import autotools
 from spack.package import *
 
 
-class Libxml2(AutotoolsPackage, NMakePackage):
+class Libxml2(AutotoolsPackage):
     """Libxml2 is the XML C parser and toolkit developed for the Gnome
     project (but usable outside of the Gnome platform), it is free
     software available under the MIT License."""
@@ -42,10 +42,10 @@ class Libxml2(AutotoolsPackage, NMakePackage):
 
     variant("python", default=False, description="Enable Python support")
 
-    depends_on("pkgconfig@0.9.0:", type="build", when="build_system=autotools")
+    depends_on("pkgconfig@0.9.0:", type="build")
     # conditional on non Windows, but rather than specify for each platform
     # specify for non Windows builder, which has equivalent effect
-    depends_on("iconv", when="build_system=autotools")
+    depends_on("iconv")
     depends_on("zlib")
     depends_on("xz")
 
@@ -75,7 +75,7 @@ class Libxml2(AutotoolsPackage, NMakePackage):
         sha256="3e06d42596b105839648070a5921157fe284b932289ffdbfa304ddc3457e5637",
         when="@2.9.11:2.9.14",
     )
-    build_system(conditional("nmake", when="platform=windows"), "autotools", default="autotools")
+    build_system("autotools")
 
     @property
     def command(self):
@@ -167,30 +167,3 @@ class AutotoolsBuilder(autotools.AutotoolsBuilder, RunAfter):
             args.append("--without-python")
 
         return args
-
-
-class NMakeBuilder(nmake.NMakeBuilder, RunAfter):
-    phases = ("configure", "build", "install")
-
-    @property
-    def makefile_name(self):
-        return "Makefile.msvc"
-
-    @property
-    def build_directory(self):
-        return os.path.join(self.stage.source_path, "win32")
-
-    def configure(self, pkg, spec, prefix):
-        with working_dir(self.build_directory):
-            opts = [
-                "prefix=%s" % prefix,
-                "compiler=msvc",
-                "iconv=no",
-                "zlib=yes",
-                "lzma=yes",
-                "lib=%s" % ";".join((spec["zlib"].prefix.lib, spec["xz"].prefix.lib)),
-                "include=%s" % ";".join((spec["zlib"].prefix.include, spec["xz"].prefix.include)),
-            ]
-            if "+python" in spec:
-                opts.append("python=yes")
-            cscript("configure.js", *opts)
