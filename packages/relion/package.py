@@ -71,9 +71,6 @@ class Relion(CMakePackage, CudaPackage):
           when='@:3.1.1 os=ubuntu18.04')
 
     def cmake_args(self):
-
-        carch = self.spec.variants['cuda_arch'].value[0]
-
         args = [
             '-DCMAKE_C_FLAGS=-g',
             '-DCMAKE_CXX_FLAGS=-g',
@@ -84,6 +81,7 @@ class Relion(CMakePackage, CudaPackage):
         ]
 
         if '+cuda' in self.spec:
+            carch = self.spec.variants['cuda_arch'].value[0]
             # relion+cuda requires selecting cuda_arch
             if not carch:
                 raise ValueError("select cuda_arch when building with +cuda")
