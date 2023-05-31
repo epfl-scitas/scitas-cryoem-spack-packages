@@ -389,6 +389,24 @@ class PyTorch(PythonPackage, CudaPackage, ROCmPackage):
         working_dir="third_party/gloo",
     )
 
+    @property
+    def libs(self):
+        # TODO: why doesn't `python_platlib` work here?
+        root = join_path(
+            self.prefix, self.spec['python'].package.platlib, 'torch', 'lib'
+        )
+        return find_libraries('libtorch', root)
+
+    @property
+    def headers(self):
+        # TODO: why doesn't `python_platlib` work here?
+        root = join_path(
+            self.prefix, self.spec['python'].package.platlib, 'torch', 'include'
+        )
+        headers = find_all_headers(root)
+        headers.directories = [root]
+        return headers
+    
     @when("@1.5.0:")
     def patch(self):
         # https://github.com/pytorch/pytorch/issues/52208
