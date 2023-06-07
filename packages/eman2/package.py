@@ -35,7 +35,8 @@ class Eman2(CMakePackage):
     depends_on("ftgl")
 
     # This dependencies where taken from the "eman2-deps" recipe for conda
-    depends_on("py-bsddb3", type=["run"])
+    depends_on("py-bsddb3", type=["run"], when="^python@:3.6")
+    depends_on("berkeley-db", type=["run"], when="^python@3.6:")
     depends_on("py-future", type=["run"])
     depends_on("py-matplotlib", type=["run"])
     depends_on("py-mpi4py", type=["run"], when="+mpi")
