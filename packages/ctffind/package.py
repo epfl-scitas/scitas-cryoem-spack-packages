@@ -22,3 +22,26 @@ class Ctffind(AutotoolsPackage):
 
     depends_on('wxwidgets')
     depends_on('fftw@3:')
+    depends_on('libtiff')
+    depends_on('jpeg')
+
+    patch('configure.patch', when='@4.1.8')
+    patch('power9.patch', when='@4.1.14 target=power9le')
+
+    def configure_args(self):
+        config_args = []
+
+        if '^mkl' in self.spec:
+            config_args.extend([
+                '--enable-mkl',
+                'CPPFLAGS=-I{0}'.format(
+                    join_path(
+                        self.spec['fftw-api'].headers.directories[0], 'fftw')),
+            ])
+        else:
+            config_args.extend([
+                '--disable-mkl',
+                'CPPFLAGS={0}'.format(self.spec['fftw-api'].headers.include_flags),
+            ])
+
+        return config_args
