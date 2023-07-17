@@ -23,6 +23,8 @@ class Wxwidgets(AutotoolsPackage):
     git      = "https://github.com/wxWidgets/wxWidgets.git"
 
     version('develop', branch='master')
+    version("3.2.2.1", sha256="dffcb6be71296fff4b7f8840eb1b510178f57aa2eb236b20da41182009242c02")
+    version("3.2.2", sha256="8edf18672b7bc0996ee6b7caa2bee017a9be604aad1ee471e243df7471f5db5d")
     version('3.1.0', sha256='e082460fb6bf14b7dd6e8ac142598d1d3d0b08a7b5ba402fdbf8711da7e66da8')
     version('3.0.2', sha256='346879dc554f3ab8d6da2704f651ecb504a22e9d31c17ef5449b129ed711585d')
     version('3.0.1', sha256='bd671b79ec56af8fb3844e11cafceac1a4276fb02c79404d06b91b6c19d2c5f5')
@@ -31,9 +33,16 @@ class Wxwidgets(AutotoolsPackage):
 
     depends_on('pkgconfig', type='build')
     depends_on('gtkplus')
-    depends_on('libtiff', when='+tiff')
+    depends_on('expat')
+    depends_on('libjpeg', when='+libjpeg')
+    depends_on('libpng', when='+libpng')
+    depends_on('libtiff', when='+libtiff')
+    depends_on('zlib', when='+zlib')
 
-    variant('tiff', default=True, description='Add tiff support')
+    variant('libjpeg', default=True, description='Add jpeg support')
+    variant('libpng',  default=True, description='Add png support')
+    variant('libtiff', default=True, description='Add tiff support')
+    variant('zlib',    default=True, description='Add zlib support')
 
     @when('@:3.0.2')
     def build(self, spec, prefix):
@@ -53,7 +62,14 @@ class Wxwidgets(AutotoolsPackage):
                 '--disable-mediactrl'
             ])
 
-        if spec.satisfies('~tiff'):
-            options.append('--without-libtiff')
+        libs = ['libjpeg', 'libtiff', 'zlib']
+        for lib in libs:
+            if spec.satisfies('~' + lib):
+                options.append('--without-{}'.format(lib))
+
+        if spec.satisfies('~libpng'):
+            # svg support depends on libpng
+            options.extend(['--without-libpng',
+                            '--disable-svg'])
 
         return options
