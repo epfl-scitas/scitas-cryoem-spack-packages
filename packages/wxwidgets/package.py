@@ -37,12 +37,16 @@ class Wxwidgets(AutotoolsPackage):
     depends_on('libjpeg', when='+libjpeg')
     depends_on('libpng', when='+libpng')
     depends_on('libtiff', when='+libtiff')
+    depends_on('libpng', when='+svg')
     depends_on('zlib', when='+zlib')
 
     variant('libjpeg', default=True, description='Add jpeg support')
     variant('libpng',  default=True, description='Add png support')
     variant('libtiff', default=True, description='Add tiff support')
+    variant('svg',     default=True, description='Add svg support')
     variant('zlib',    default=True, description='Add zlib support')
+
+    conflicts('+svg', when='~libpng', msg='SVG support depends on libpng')
 
     @when('@:3.0.2')
     def build(self, spec, prefix):
@@ -62,14 +66,12 @@ class Wxwidgets(AutotoolsPackage):
                 '--disable-mediactrl'
             ])
 
-        libs = ['libjpeg', 'libtiff', 'zlib']
+        libs = ['libjpeg', 'libpng', 'libtiff', 'zlib']
         for lib in libs:
             if spec.satisfies('~' + lib):
                 options.append('--without-{}'.format(lib))
 
-        if spec.satisfies('~libpng'):
-            # svg support depends on libpng
-            options.extend(['--without-libpng',
-                            '--disable-svg'])
+        if spec.satisfies('~svg'):
+            options.append('--disable-svg')
 
         return options
